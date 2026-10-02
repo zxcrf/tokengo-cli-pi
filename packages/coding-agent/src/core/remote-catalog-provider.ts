@@ -10,7 +10,6 @@ import { VERSION } from "../config.ts";
 import { fetchWithRetry } from "../utils/management-http.ts";
 import { getPiUserAgent } from "../utils/pi-user-agent.ts";
 
-const DEFAULT_CATALOG_BASE_URL = "https://pi.dev";
 const REMOTE_CATALOG_ATTEMPT_TIMEOUT_MS = 4_000;
 export const REMOTE_CATALOG_REFRESH_INTERVAL_MS = 4 * 60 * 60 * 1000;
 /**
@@ -57,12 +56,13 @@ function remoteModels(entry: ModelsStoreEntry | undefined, localGeneratedAt: num
 	return entry.models;
 }
 
-/** Add a persisted pi.dev catalog overlay to a static built-in provider. */
-export function withRemoteCatalog(
-	provider: Provider,
-	catalogBaseUrl: string = DEFAULT_CATALOG_BASE_URL,
-	localGeneratedAt?: number,
-): Provider {
+/**
+ * Add a persisted remote catalog overlay to a static built-in provider.
+ * Without an explicit catalog base URL the overlay is disabled and the provider is returned unchanged.
+ */
+export function withRemoteCatalog(provider: Provider, catalogBaseUrl?: string, localGeneratedAt?: number): Provider {
+	// A provider with its own dynamic catalog must keep its refreshModels.
+	if (!catalogBaseUrl || provider.refreshModels) return provider;
 	let dynamicModels: readonly AnyModel[] = [];
 
 	return {

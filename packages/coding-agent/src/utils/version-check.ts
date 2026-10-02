@@ -2,13 +2,14 @@ import { compare, valid } from "semver";
 import { fetchWithRetry } from "./management-http.ts";
 import { getPiUserAgent } from "./pi-user-agent.ts";
 
-const LATEST_VERSION_URL = "https://pi.dev/api/latest-version";
+const LATEST_RELEASE_URL = "https://api.github.com/repos/zxcrf/tokengo-cli/releases/latest";
 const DEFAULT_VERSION_CHECK_TIMEOUT_MS = 10000;
 
 export interface LatestPiRelease {
+	/** Version without the leading `v`. */
 	version: string;
-	packageName?: string;
-	note?: string;
+	/** Git tag of the release, as published on GitHub. */
+	tag: string;
 }
 
 /** Include useful errno details hidden behind Node's generic "fetch failed" error. */
@@ -54,37 +55,38 @@ export async function getLatestPiRelease(
 ): Promise<LatestPiRelease | undefined> {
 	if (process.env.PI_OFFLINE) return undefined;
 
-	const response = await fetchWithRetry(
-		LATEST_VERSION_URL,
-		{
-			headers: {
-				"User-Agent": getPiUserAgent(currentVersion),
-				accept: "application/json",
+	const request = (token: string | undefined) =>
+		fetchWithRetry(
+			LATEST_RELEASE_URL,
+			{
+				headers: {
+					"User-Agent": getPiUserAgent(currentVersion),
+					accept: "application/vnd.github+json",
+					...(token ? { authorization: `Bearer ${token}` } : {}),
+				},
 			},
-		},
-		{
-			maxRetries: options.retry ? 2 : 0,
-			timeoutMs: options.timeoutMs ?? DEFAULT_VERSION_CHECK_TIMEOUT_MS,
-		},
-	);
+			{
+				maxRetries: options.retry ? 2 : 0,
+				timeoutMs: options.timeoutMs ?? DEFAULT_VERSION_CHECK_TIMEOUT_MS,
+			},
+		);
+
+	const token = process.env.GITHUB_TOKEN?.trim() || undefined;
+	let response = await request(token);
+	// A stale or invalid token must not block unauthenticated access to a public repository.
+	if (response.status === 401 && token) response = await request(undefined);
+	if (response.status === 403) {
+		throw new Error("GitHub API rate limit exceeded or access denied. Set GITHUB_TOKEN to raise the limit.");
+	}
+	if (response.status === 404) throw new Error("No tokengo release found on GitHub.");
 	if (!response.ok) return undefined;
 
-	const data = (await response.json()) as {
-		packageName?: unknown;
-		version?: unknown;
-		note?: unknown;
-	};
-	if (typeof data.version !== "string" || !data.version.trim()) {
-		return undefined;
-	}
-	const packageName =
-		typeof data.packageName === "string" && data.packageName.trim() ? data.packageName.trim() : undefined;
-	const note = typeof data.note === "string" && data.note.trim() ? data.note.trim() : undefined;
-	return {
-		version: data.version.trim(),
-		packageName,
-		...(note ? { note } : {}),
-	};
+	const data = (await response.json()) as { tag_name?: unknown };
+	if (typeof data.tag_name !== "string") return undefined;
+	const tag = data.tag_name.trim();
+	const version = tag.replace(/^v/, "");
+	if (!version) return undefined;
+	return { version, tag };
 }
 
 export async function getLatestPiVersion(

@@ -92,7 +92,7 @@ export function smokeTestCodingAgentConsumer(directory, runtime = process.execPa
 		LOCALAPPDATA: home,
 		XDG_CONFIG_HOME: home,
 		XDG_CACHE_HOME: home,
-		PI_CODING_AGENT_DIR: join(home, ".pi", "agent"),
+		TOKENGO_CODING_AGENT_DIR: join(home, ".tokengo", "agent"),
 		PI_OFFLINE: "1",
 		PI_TELEMETRY: "0",
 	};

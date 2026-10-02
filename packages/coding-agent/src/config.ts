@@ -331,24 +331,13 @@ export function getSelfUpdateCommand(
 	return command;
 }
 
-export function getSelfUpdateUnavailableInstruction(
-	packageName: string,
-	npmCommand?: string[],
-	updatePackageTarget: SelfUpdatePackageTarget = packageName,
-): string {
-	const method = detectInstallMethod();
-	const target = normalizeSelfUpdatePackageTarget(updatePackageTarget);
-	if (method === "bun-binary") {
-		return `Download from: https://github.com/earendil-works/pi/releases/latest`;
+export function getSelfUpdateUnavailableInstruction(): string {
+	const reinstall =
+		"Reinstall with scripts/install.sh (macOS/Linux) or scripts/install.ps1 (Windows) from https://github.com/zxcrf/tokengo-cli";
+	if (detectInstallMethod() === "bun-binary") {
+		return `${reinstall}, or download https://github.com/zxcrf/tokengo-cli/releases/latest`;
 	}
-	const command = getSelfUpdateCommandForMethod(method, packageName, target, npmCommand);
-	if (command) {
-		if (isManagedByGlobalPackageManager(method, packageName, npmCommand) && !isSelfUpdatePathWritable()) {
-			return `This installation is managed by a global ${method} install, but the install path is not writable. Update it yourself with: ${command.display}`;
-		}
-		return `This installation is not managed by a global ${method} install. Update it with the package manager, wrapper, or source checkout that provides it.`;
-	}
-	return `Update ${target.installSpec} using the package manager, wrapper, or source checkout that provides this installation.`;
+	return `This ${APP_NAME} installation is not a release binary. ${reinstall}`;
 }
 
 export function getUpdateInstruction(packageName: string): string {
@@ -357,7 +346,7 @@ export function getUpdateInstruction(packageName: string): string {
 	if (command) {
 		return `Run: ${command.display}`;
 	}
-	return getSelfUpdateUnavailableInstruction(packageName);
+	return getSelfUpdateUnavailableInstruction();
 }
 
 // =============================================================================
