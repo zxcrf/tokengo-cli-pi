@@ -10,6 +10,7 @@ import {
 	type Model,
 } from "@earendil-works/pi-ai/compat";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { APP_NAME } from "../src/config.ts";
 import { AgentSession } from "../src/core/agent-session.ts";
 import type { AgentSessionRuntime } from "../src/core/agent-session-runtime.ts";
 import { AuthStorage } from "../src/core/auth-storage.ts";
@@ -224,7 +225,7 @@ describe("RPC prompt response semantics", () => {
 					command: "prompt",
 					success: false,
 					error: expect.stringContaining(
-						"No API key found for fake-provider.\n\nUse /login to log into a provider via OAuth or API key. See:",
+						`No API key found for fake-provider.\n\nUse /login to log into a provider via OAuth or API key, or run \`${APP_NAME} login\`. See:`,
 					),
 				});
 			});

@@ -30,6 +30,7 @@ import { resolveCredentialForPrint } from "./cli/credential-print.ts";
 import { processFileArguments } from "./cli/file-processor.ts";
 import { buildInitialMessage } from "./cli/initial-message.ts";
 import { listModels } from "./cli/list-models.ts";
+import { runLoginCommand } from "./cli/login-command.ts";
 import { createProjectTrustContext } from "./cli/project-trust.ts";
 import { selectSession } from "./cli/session-picker.ts";
 import { shouldRunFirstTimeSetup, showFirstTimeSetup, showStartupSelector } from "./cli/startup-ui.ts";
@@ -594,6 +595,8 @@ export async function main(args: string[], options?: MainOptions) {
 	applyHttpProxySettings(bootstrapSettingsManager.getGlobalSettings().httpProxy);
 	configureHttpDispatcher();
 
+	if (await runLoginCommand(args, { settingsManager: bootstrapSettingsManager })) return;
+
 	if (await handlePackageCommand(args, { extensionFactories })) {
 		const exitCode = process.exitCode ?? 0;
 		if (process.platform === "win32" && exitCode === 0 && args[0] === "update") {
@@ -751,6 +754,7 @@ export async function main(args: string[], options?: MainOptions) {
 			agentDir,
 			settingsManager: runtimeSettingsManager,
 			modelRuntimeSignal: AbortSignal.timeout(15_000),
+			allowedBuiltinProviders: runtimeSettingsManager.getAllowedProviders(),
 			extensionFlagValues: parsed.unknownFlags,
 			resourceLoaderReloadOptions: shouldResolveProjectTrust
 				? {

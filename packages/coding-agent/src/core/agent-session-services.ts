@@ -40,6 +40,8 @@ export interface CreateAgentSessionServicesOptions {
 	settingsManager?: SettingsManager;
 	modelRuntime?: ModelRuntime;
 	modelRuntimeSignal?: AbortSignal;
+	/** Built-in provider allow-list forwarded to ModelRuntime.create when no modelRuntime is supplied. */
+	allowedBuiltinProviders?: readonly string[];
 	extensionFlagValues?: Map<string, boolean | string>;
 	resourceLoaderOptions?: Omit<DefaultResourceLoaderOptions, "cwd" | "agentDir" | "settingsManager">;
 	resourceLoaderReloadOptions?: ResourceLoaderReloadOptions;
@@ -143,6 +145,7 @@ export async function createAgentSessionServices(
 			authPath: join(agentDir, "auth.json"),
 			modelsPath: join(agentDir, "models.json"),
 			signal: options.modelRuntimeSignal,
+			allowedBuiltinProviders: options.allowedBuiltinProviders,
 		}));
 	const settingsManager = options.settingsManager ?? SettingsManager.create(cwd, agentDir);
 	const resourceLoader = new DefaultResourceLoader({

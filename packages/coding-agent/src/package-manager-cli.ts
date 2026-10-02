@@ -588,6 +588,9 @@ async function refreshModelCatalogs(agentDir: string): Promise<void> {
 			authPath: join(agentDir, "auth.json"),
 			modelsPath: join(agentDir, "models.json"),
 			allowModelNetwork: false,
+			allowedBuiltinProviders: SettingsManager.create(process.cwd(), agentDir, {
+				projectTrusted: false,
+			}).getAllowedProviders(),
 			signal: controller.signal,
 		});
 		const result = await modelRuntime.refresh({

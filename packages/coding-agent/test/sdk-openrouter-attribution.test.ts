@@ -92,9 +92,7 @@ describe("createAgentSession provider attribution headers", () => {
 		} = {},
 	): Promise<ProviderHeaders | undefined> {
 		const settingsManager = SettingsManager.create(cwd, agentDir);
-		if (options.telemetryEnabled === false) {
-			settingsManager.setEnableInstallTelemetry(false);
-		}
+		settingsManager.setEnableInstallTelemetry(options.telemetryEnabled ?? true);
 
 		const authStorage = AuthStorage.inMemory({
 			[model.provider]: { type: "api_key", key: "test-api-key" },

@@ -10,6 +10,7 @@ import {
 	type Model,
 	modelsAreEqual,
 } from "@earendil-works/pi-ai";
+import { TOKEN_GO_DEFAULT_MODEL_ID } from "@earendil-works/pi-ai/providers/token-go";
 import chalk from "chalk";
 import { minimatch } from "minimatch";
 import { isValidThinkingLevel } from "../cli/args.ts";
@@ -18,6 +19,7 @@ import type { ModelRuntime } from "./model-runtime.ts";
 
 /** Default chat model IDs for providers with built-in chat models. */
 export const defaultModelPerProvider: Partial<Record<KnownProvider, string>> = {
+	"token-go": TOKEN_GO_DEFAULT_MODEL_ID,
 	"amazon-bedrock": "us.anthropic.claude-opus-4-6-v1",
 	"ant-ling": "Ring-2.6-1T",
 	anthropic: "claude-opus-4-8",
