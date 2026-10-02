@@ -1,5 +1,9 @@
 import type { ApiKeyCredential, Model, Provider } from "@earendil-works/pi-ai";
-import { TOKEN_GO_ENV, TOKEN_GO_PROVIDER_ID } from "@earendil-works/pi-ai/providers/token-go";
+import {
+	TOKEN_GO_DEFAULT_MODEL_ID,
+	TOKEN_GO_ENV,
+	TOKEN_GO_PROVIDER_ID,
+} from "@earendil-works/pi-ai/providers/token-go";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runLoginCommand } from "../src/cli/login-command.ts";
 import type { TerminalAuthInput } from "../src/cli/terminal-auth-interaction.ts";
@@ -90,7 +94,7 @@ describe("runLoginCommand", () => {
 			testProvider({
 				id: TOKEN_GO_PROVIDER_ID,
 				name: "TokenGo",
-				modelIds: ["gpt-5", "claude-sonnet-4-5"],
+				modelIds: ["gpt-5", TOKEN_GO_DEFAULT_MODEL_ID],
 				login: async (secret) => {
 					secrets.push(secret);
 					if (loginError) throw loginError;
@@ -155,7 +159,7 @@ describe("runLoginCommand", () => {
 		expect(result.out.trimEnd().split("\n")).toEqual([
 			"Logged in to TokenGo as alice (group tokengo).",
 			`Credentials saved to ${getAuthPath()}`,
-			"Models: 2 available. Suggested default: token-go/claude-sonnet-4-5",
+			`Models: 2 available. Suggested default: token-go/${TOKEN_GO_DEFAULT_MODEL_ID}`,
 		]);
 		expect(process.exitCode).toBeUndefined();
 		expect(await credentials.read(TOKEN_GO_PROVIDER_ID)).toMatchObject({ type: "api_key", key: "sk-issued" });

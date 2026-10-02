@@ -251,8 +251,8 @@ describe("token-go provider", () => {
 			expect(listed.map((model) => model.id)).toEqual([
 				"claude-sonnet-4-5",
 				"gpt-5",
-				"claude-haiku-4-5",
 				"deepseek-chat",
+				"claude-haiku-4-5",
 			]);
 			const byId = new Map(listed.map((model) => [model.id, model]));
 			expect(byId.get("claude-sonnet-4-5")).toMatchObject({ api: "anthropic-messages", baseUrl: fake.url });

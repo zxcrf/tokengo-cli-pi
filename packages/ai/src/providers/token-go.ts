@@ -25,16 +25,23 @@ import {
 
 export const TOKEN_GO_PROVIDER_ID = "token-go";
 export const TOKEN_GO_PROVIDER_NAME = "TokenGo";
-/** Assumed until the live relay probe (step 0). */
-export const TOKEN_GO_DEFAULT_MODEL_ID = "claude-sonnet-4-5";
+/** Verified against the relay on 2026-10-02: served to the `tokengo` group and priced at the Sonnet tier. */
+export const TOKEN_GO_DEFAULT_MODEL_ID = "claude-sonnet-5";
 /** Substring match, in order, when ordering the catalog and choosing a default. */
 export const TOKEN_GO_MODEL_PRIORITY: readonly string[] = [
-	"claude-sonnet-4-5",
-	"claude-opus-4-5",
-	"gpt-5-codex",
+	"claude-sonnet-5",
+	"claude-opus-5",
+	"claude-fable-5-1",
+	"gpt-5.6-terra",
+	"gpt-5.5",
+	"gemini-3.1-pro",
+	"deepseek-flash",
+	// Family fallbacks for ids the relay may add later.
+	"claude-sonnet",
+	"claude-opus",
 	"gpt-5",
-	"claude-sonnet-4",
-	"gemini-2.5-pro",
+	"gemini",
+	"deepseek",
 ];
 export const TOKEN_GO_ENV = {
 	apiKey: "TOKENGO_API_KEY",

@@ -261,37 +261,45 @@ describe("buildTokenGoModels", () => {
 		expect(models.map((model) => model.id)).toEqual([
 			"claude-sonnet-4-5",
 			"gpt-5",
-			"claude-haiku-4-5",
 			"deepseek-chat",
+			"claude-haiku-4-5",
 		]);
 	});
 });
 
 describe("sortByTokenGoPriority", () => {
 	it("ranks by first matching priority entry and breaks ties by id", () => {
-		expect(TOKEN_GO_MODEL_PRIORITY[0]).toBe("claude-sonnet-4-5");
+		expect(TOKEN_GO_MODEL_PRIORITY[0]).toBe("claude-sonnet-5");
 		const sorted = sortByTokenGoPriority(
 			[
 				"zeta",
 				"alpha",
-				"gemini-2.5-pro",
-				"claude-sonnet-4",
+				"deepseek-chat",
+				"gemini-3.8-flash",
 				"gpt-5",
-				"gpt-5-codex",
-				"claude-opus-4-5",
-				"claude-sonnet-4-5-b",
-				"claude-sonnet-4-5-a",
+				"claude-haiku-4-5",
+				"claude-sonnet-4-5",
+				"gpt-5.5",
+				"gpt-5.6-terra",
+				"claude-fable-5-1",
+				"claude-opus-5-5",
+				"claude-sonnet-5-5",
+				"claude-sonnet-5",
 			].map((id) => ({ id })),
 		);
 		expect(sorted.map((entry) => entry.id)).toEqual([
-			"claude-sonnet-4-5-a",
-			"claude-sonnet-4-5-b",
-			"claude-opus-4-5",
-			"gpt-5-codex",
+			"claude-sonnet-5",
+			"claude-sonnet-5-5",
+			"claude-opus-5-5",
+			"claude-fable-5-1",
+			"gpt-5.6-terra",
+			"gpt-5.5",
+			"claude-sonnet-4-5",
 			"gpt-5",
-			"claude-sonnet-4",
-			"gemini-2.5-pro",
+			"gemini-3.8-flash",
+			"deepseek-chat",
 			"alpha",
+			"claude-haiku-4-5",
 			"zeta",
 		]);
 	});
