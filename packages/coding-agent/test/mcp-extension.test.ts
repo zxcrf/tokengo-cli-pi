@@ -12,6 +12,7 @@ import {
 } from "@earendil-works/pi-mcp";
 import { createInMemoryTransportPair, type InMemoryTransport } from "@earendil-works/pi-mcp/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { CONFIG_DIR_NAME } from "../src/config.ts";
 import { InMemoryAuthStorageBackend } from "../src/core/auth-storage.ts";
 import { truncateMiddle } from "../src/core/tools/truncate.ts";
 import { getMcpToolExposure, loadMcpConfig, type McpServerEntry } from "../src/extensions/mcp/config.ts";
@@ -40,9 +41,9 @@ describe("MCP config", () => {
 		const agentDir = join(root, "agent");
 		const cwd = join(root, "project");
 		mkdirSync(agentDir, { recursive: true });
-		mkdirSync(join(cwd, ".pi"), { recursive: true });
+		mkdirSync(join(cwd, CONFIG_DIR_NAME), { recursive: true });
 		writeFileSync(join(agentDir, "mcp.json"), JSON.stringify(global));
-		writeFileSync(join(cwd, ".pi", "mcp.json"), JSON.stringify(project));
+		writeFileSync(join(cwd, CONFIG_DIR_NAME, "mcp.json"), JSON.stringify(project));
 		return { agentDir, cwd };
 	}
 

@@ -29,7 +29,7 @@
 import { join, resolve } from "node:path";
 import { hyperlink, type SelectItem } from "@earendil-works/pi-tui";
 import type { TSchema } from "typebox";
-import { getAgentDir } from "../../config.ts";
+import { CONFIG_DIR_NAME, getAgentDir } from "../../config.ts";
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
@@ -694,7 +694,7 @@ export function createMcpExtension(options: McpExtensionOptions = {}): Extension
 					label: server.entry.name,
 					description: `${describeState(server)} · ${exposureOf(server.entry)} · ${server.entry.scope ?? server.entry.source}`,
 				})),
-			empty: `No MCP servers configured. Add them to ${resolve(getAgentDir(), "mcp.json")} or .pi/mcp.json.`,
+			empty: `No MCP servers configured. Add them to ${resolve(getAgentDir(), "mcp.json")} or ${CONFIG_DIR_NAME}/mcp.json.`,
 			confirmLabel: "manage",
 			cancelLabel: "close",
 		});
@@ -861,7 +861,7 @@ export function createMcpExtension(options: McpExtensionOptions = {}): Extension
 
 		const formatStatus = (): string => {
 			if (servers.length === 0 && configErrors.length === 0 && overridden.length === 0) {
-				return `No MCP servers configured. Add them to ${resolve(getAgentDir(), "mcp.json")} or .pi/mcp.json.`;
+				return `No MCP servers configured. Add them to ${resolve(getAgentDir(), "mcp.json")} or ${CONFIG_DIR_NAME}/mcp.json.`;
 			}
 			const lines = servers.map((server) => {
 				const { name } = server.entry;

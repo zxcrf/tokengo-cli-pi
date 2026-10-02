@@ -43,7 +43,7 @@ function testProvider(localGeneratedAt?: number) {
 				},
 			},
 		}),
-		"https://pi.dev",
+		"https://catalog.example.test",
 		localGeneratedAt,
 	);
 }
@@ -90,7 +90,7 @@ describe("remote catalog provider", () => {
 		expect((await store.read(provider.id))?.models.map((entry) => entry.id)).toEqual(["dynamic"]);
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
 		expect(fetchSpy.mock.calls[0]?.[1]?.headers).toMatchObject({
-			"User-Agent": expect.stringContaining(`pi/${VERSION}`),
+			"User-Agent": expect.stringContaining(`tokengo-cli/${VERSION}`),
 		});
 		const requested = new URL(String(fetchSpy.mock.calls[0]?.[0]));
 		expect(requested.pathname).toBe("/api/models/providers/test-provider");
@@ -279,7 +279,7 @@ describe("remote catalog provider", () => {
 		expect((await store.read(provider.id))?.models.map((entry) => entry.id)).toEqual(["newer"]);
 	});
 
-	it("treats unimplemented pi.dev catalog routes as an unavailable overlay", async () => {
+	it("treats unimplemented catalog routes as an unavailable overlay", async () => {
 		vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("not implemented", { status: 501 }));
 		const provider = testProvider();
 		const store = new InMemoryModelsStore();
@@ -287,5 +287,43 @@ describe("remote catalog provider", () => {
 		await expect(refreshProvider(provider, store)).resolves.toBeUndefined();
 		expect(provider.getModels().map((entry) => entry.id)).toEqual(["static"]);
 		expect(await store.read(provider.id)).toMatchObject({ models: [], checkedAt: expect.any(Number) });
+	});
+
+	it("leaves the provider unchanged when no catalog base URL is configured", () => {
+		const base = createProvider({
+			id: "test-provider",
+			auth: { apiKey: { name: "Test", resolve: async () => ({ auth: {} }) } },
+			models: [model("static")],
+			api: {
+				stream: () => {
+					throw new Error("not used");
+				},
+				streamSimple: () => {
+					throw new Error("not used");
+				},
+			},
+		});
+
+		expect(withRemoteCatalog(base)).toBe(base);
+	});
+
+	it("returns providers that already define refreshModels unchanged and still wraps static ones", () => {
+		const api = {
+			stream: () => {
+				throw new Error("not used");
+			},
+			streamSimple: () => {
+				throw new Error("not used");
+			},
+		};
+		const auth = { apiKey: { name: "Test", resolve: async () => ({ auth: {} }) } };
+		const dynamic = {
+			...createProvider({ id: "dynamic", auth, models: [model("static")], api }),
+			refreshModels: async () => {},
+		};
+		const staticProvider = createProvider({ id: "static-provider", auth, models: [model("static")], api });
+
+		expect(withRemoteCatalog(dynamic, "https://catalog.example.test")).toBe(dynamic);
+		expect(withRemoteCatalog(staticProvider, "https://catalog.example.test")).not.toBe(staticProvider);
 	});
 });

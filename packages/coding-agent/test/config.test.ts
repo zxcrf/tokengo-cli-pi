@@ -176,9 +176,7 @@ describe("detectInstallMethod", () => {
 
 		expect(detectInstallMethod()).toBe("unknown");
 		expect(getSelfUpdateCommand("@earendil-works/pi-coding-agent")).toBeUndefined();
-		expect(getUpdateInstruction("@earendil-works/pi-coding-agent")).toBe(
-			"Update @earendil-works/pi-coding-agent using the package manager, wrapper, or source checkout that provides this installation.",
-		);
+		expect(getUpdateInstruction("@earendil-works/pi-coding-agent")).toContain("scripts/install.sh");
 	});
 
 	test("self-updates npm installs from custom prefixes", () => {
@@ -444,8 +442,6 @@ describe("detectInstallMethod", () => {
 		chmodSync(packageDir, 0o500);
 
 		expect(getSelfUpdateCommand("@earendil-works/pi-coding-agent")).toBeUndefined();
-		expect(getSelfUpdateUnavailableInstruction("@earendil-works/pi-coding-agent")).toContain(
-			"the install path is not writable",
-		);
+		expect(getSelfUpdateUnavailableInstruction()).toContain("not a release binary");
 	});
 });

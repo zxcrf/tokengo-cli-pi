@@ -1,3 +1,16 @@
+# TokenGo CLI
+
+TokenGo CLI is a fork of [Pi](https://pi.dev) v1.0.0 (the upstream README follows). Releases: <https://github.com/zxcrf/tokengo-cli/releases>.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zxcrf/tokengo-cli/main/scripts/install.sh | bash   # macOS / Linux
+irm https://raw.githubusercontent.com/zxcrf/tokengo-cli/main/scripts/install.ps1 | iex          # Windows (PowerShell)
+```
+
+Run `tokengo`; update with `tokengo update`. Configuration lives in `~/.tokengo/agent`.
+
+---
+
 <p align="center">
   <a href="https://pi.dev">
     <img alt="pi logo" src="https://pi.dev/logo-auto.svg" width="128">

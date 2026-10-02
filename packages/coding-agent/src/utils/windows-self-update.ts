@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, toNamespacedPath } from "node:path";
 import { getCwdRelativePath } from "./paths.ts";
 
@@ -47,7 +47,32 @@ function getLoadedSharedObjectsInPackageDir(packageDir: string): string[] {
 	return loadedFiles;
 }
 
-export function cleanupWindowsSelfUpdateQuarantine(packageDir: string): void {
+/** Remove files left behind by a binary self-update that could not delete them while they were in use. */
+function cleanupBinarySelfUpdateLeftovers(packageDir: string, execPath: string): void {
+	const execName = basename(execPath);
+	const execDir = dirname(execPath);
+	const targets: string[] = [];
+	try {
+		for (const name of readdirSync(execDir)) {
+			if (name.startsWith(`${execName}.old-`)) targets.push(join(execDir, name));
+		}
+		for (const name of readdirSync(packageDir)) {
+			if (/^\.tokengo-old-\d+$/.test(name)) targets.push(join(packageDir, name));
+		}
+	} catch {
+		return;
+	}
+	for (const target of targets) {
+		try {
+			rmSync(target, { recursive: true, force: true });
+		} catch {
+			// EBUSY while a previous process is still exiting; the next start retries.
+		}
+	}
+}
+
+export function cleanupWindowsSelfUpdateQuarantine(packageDir: string, execPath: string = process.execPath): void {
+	cleanupBinarySelfUpdateLeftovers(packageDir, execPath);
 	const quarantineRoot = getQuarantineRoot(packageDir);
 	if (!quarantineRoot) {
 		return;
