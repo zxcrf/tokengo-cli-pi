@@ -141,6 +141,10 @@
           "path": "codemode.md"
         },
         {
+          "title": "Subagents",
+          "path": "subagent.md"
+        },
+        {
           "title": "Slash Commands",
           "path": "slash-commands.md"
         },
