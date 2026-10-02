@@ -5,6 +5,7 @@ import { Agent } from "@earendil-works/pi-agent-core";
 import type { Model } from "@earendil-works/pi-ai";
 import { getModel, streamSimple } from "@earendil-works/pi-ai/compat";
 import { getBuiltinModels, getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
+import { TOKEN_GO_DEFAULT_MODEL_ID, TOKEN_GO_PROVIDER_ID } from "@earendil-works/pi-ai/providers/token-go";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { AgentSession } from "../src/core/agent-session.ts";
 import { AuthStorage } from "../src/core/auth-storage.ts";
@@ -733,6 +734,48 @@ describe("default model selection", () => {
 				`${provider} default ${defaultId} should exist in its generated catalog`,
 			).toBe(true);
 		}
+	});
+
+	test("token-go is the first default provider", () => {
+		expect(Object.keys(defaultModelPerProvider)[0]).toBe(TOKEN_GO_PROVIDER_ID);
+		expect(defaultModelPerProvider[TOKEN_GO_PROVIDER_ID]).toBe(TOKEN_GO_DEFAULT_MODEL_ID);
+	});
+
+	function tokenGoModel(id: string): Model<"openai-completions"> {
+		return {
+			id,
+			name: id,
+			api: "openai-completions",
+			provider: TOKEN_GO_PROVIDER_ID,
+			baseUrl: "https://api.token-go.click/v1",
+			reasoning: false,
+			input: ["text"],
+			cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 128000,
+			maxTokens: 8192,
+		};
+	}
+
+	test("findInitialModel picks the token-go default model when present", async () => {
+		const registry = {
+			getAvailableSnapshot: () => [tokenGoModel("gpt-5"), tokenGoModel(TOKEN_GO_DEFAULT_MODEL_ID)],
+		} as unknown as Parameters<typeof findInitialModel>[0]["modelRuntime"];
+
+		const result = await findInitialModel({ scopedModels: [], isContinuing: false, modelRuntime: registry });
+
+		expect(result.model?.provider).toBe(TOKEN_GO_PROVIDER_ID);
+		expect(result.model?.id).toBe(TOKEN_GO_DEFAULT_MODEL_ID);
+	});
+
+	test("findInitialModel falls back to the first available model when the token-go default is absent", async () => {
+		const registry = {
+			getAvailableSnapshot: () => [tokenGoModel("deepseek-chat"), tokenGoModel("gpt-5")],
+		} as unknown as Parameters<typeof findInitialModel>[0]["modelRuntime"];
+
+		const result = await findInitialModel({ scopedModels: [], isContinuing: false, modelRuntime: registry });
+
+		expect(result.model?.provider).toBe(TOKEN_GO_PROVIDER_ID);
+		expect(result.model?.id).toBe("deepseek-chat");
 	});
 
 	test("ai-gateway default tracks current model", () => {

@@ -120,6 +120,8 @@ export interface CreateModelRuntimeOptions {
 	signal?: AbortSignal;
 	/** Skip initial catalog and availability refresh. Static models remain available. */
 	refreshOnCreate?: boolean;
+	/** Built-in provider allow-list. undefined or containing "*" = all; otherwise exact ids. models.json and extension providers are unaffected. */
+	allowedBuiltinProviders?: readonly string[];
 }
 
 export interface ModelRuntimeAuthOverrides extends AuthOperationOptions {
@@ -223,10 +225,13 @@ export class ModelRuntime implements Models {
 				? new FileModelsStore(options.modelsStorePath ?? join(dirname(modelsPath), "models-store.json"))
 				: new InMemoryCodingAgentModelsStore());
 		const builtinModelDataGeneratedAt = builtinProviderCatalog.getBuiltinModelDataGeneratedAt();
+		const allowed = options.allowedBuiltinProviders;
+		const allowAll = allowed === undefined || allowed.includes("*");
 		const providers = builtinProviderCatalog
 			.builtinProviders()
+			.filter((provider) => allowAll || allowed.includes(provider.id))
 			.map((provider) =>
-				provider.id === "radius"
+				provider.refreshModels
 					? provider
 					: withRemoteCatalog(provider, options.catalogBaseUrl, builtinModelDataGeneratedAt),
 			);

@@ -152,7 +152,8 @@ export interface Settings {
 	shellCommandPrefix?: string; // Prefix prepended to every bash command (e.g., "shopt -s expand_aliases" for alias support)
 	npmCommand?: string[]; // Command used for npm package lookup/install operations, argv-style (e.g., ["mise", "exec", "node@20", "--", "npm"])
 	collapseChangelog?: boolean; // Show condensed changelog after update (use /changelog for full)
-	enableInstallTelemetry?: boolean; // default: true - anonymous version/update ping after changelog-detected updates
+	allowedProviders?: string[]; // default: ["token-go"]; global only; "*" = all built-in providers
+	enableInstallTelemetry?: boolean; // default: false - anonymous version/update ping after changelog-detected updates
 	enableAnalytics?: boolean; // default: false - opt-in analytics data sharing
 	trackingId?: string; // analytics tracking identifier, generated when analytics is enabled
 	deviceId?: string; // stable UUID of this installation, created when a login first needs it; global setting only
@@ -213,6 +214,9 @@ function deepMergeObjects(base: Record<string, unknown>, overrides: Record<strin
 
 /** Tools enabled at startup when `defaultTools` does not change them. */
 export const DEFAULT_TOOL_NAMES: readonly string[] = ["read", "bash", "edit", "write"];
+
+/** Built-in providers visible when `allowedProviders` is not set. */
+export const DEFAULT_ALLOWED_PROVIDERS: readonly string[] = ["token-go"];
 
 function isToolModifier(entry: unknown): boolean {
 	return typeof entry === "string" && (entry.startsWith("+") || entry.startsWith("-"));
@@ -1097,6 +1101,18 @@ export class SettingsManager {
 		this.save();
 	}
 
+	getAllowedProviders(): readonly string[] {
+		const value = this.globalSettings.allowedProviders;
+		if (!Array.isArray(value)) return DEFAULT_ALLOWED_PROVIDERS;
+		return value.filter((entry): entry is string => typeof entry === "string");
+	}
+
+	setAllowedProviders(providers: string[] | undefined): void {
+		this.globalSettings.allowedProviders = providers;
+		this.markModified("allowedProviders");
+		this.save();
+	}
+
 	getDefaultProjectTrust(): DefaultProjectTrust {
 		const value = this.globalSettings.defaultProjectTrust;
 		return value === "always" || value === "never" ? value : "ask";
@@ -1139,7 +1155,7 @@ export class SettingsManager {
 	}
 
 	getEnableInstallTelemetry(): boolean {
-		return this.settings.enableInstallTelemetry ?? true;
+		return this.settings.enableInstallTelemetry ?? false;
 	}
 
 	setEnableInstallTelemetry(enabled: boolean): void {

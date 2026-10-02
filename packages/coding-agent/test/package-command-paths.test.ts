@@ -491,6 +491,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 			authPath: join(agentDir, "auth.json"),
 			modelsPath: join(agentDir, "models.json"),
 			allowModelNetwork: false,
+			allowedBuiltinProviders: ["token-go"],
 			signal: expect.any(AbortSignal),
 		});
 		expect(refresh).toHaveBeenCalledWith({
