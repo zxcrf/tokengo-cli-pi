@@ -25,7 +25,11 @@ export const BUILTIN_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
 	{ name: "export", description: "Export session (HTML default, or specify path: .html/.jsonl)" },
 	{ name: "import", description: "Import and resume a session from a JSONL file" },
 	{ name: "share", description: "Share session as a secret GitHub gist" },
-	{ name: "bug", description: "Report a bug to the upstream Pi developers (needs Radius sign-in)", argumentHint: "<description>" },
+	{
+		name: "bug",
+		description: "Report a bug to the upstream Pi developers (needs Radius sign-in)",
+		argumentHint: "<description>",
+	},
 	{ name: "copy", description: "Copy last agent message to clipboard" },
 	{ name: "name", description: "Set session display name" },
 	{ name: "session", description: "Show session info and stats" },
