@@ -62,7 +62,8 @@ import { collectSettingsDiagnostics, deduplicateDiagnostics } from "./core/setti
 import { SettingsManager } from "./core/settings-manager.ts";
 import { printTimings, resetTimings, time } from "./core/timings.ts";
 import { hasTrustRequiringProjectResources, ProjectTrustStore } from "./core/trust-manager.ts";
-import { builtInExtensions } from "./extensions/index.ts";
+import { builtInExtensions, LLAMA_BUILTIN_EXTENSION_NAME } from "./extensions/index.ts";
+import { LLAMA_PROVIDER_ID } from "./extensions/llama/provider.ts";
 import { loadMcpCommand } from "./extensions/mcp/cli.lazy.ts";
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
 import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.ts";
@@ -573,7 +574,6 @@ export interface MainOptions {
 
 export async function main(args: string[], options?: MainOptions) {
 	resetTimings();
-	const extensionFactories = [...builtInExtensions, ...(options?.extensionFactories ?? [])];
 	const offlineMode = args.includes("--offline") || isTruthyEnvFlag(process.env.PI_OFFLINE);
 	if (offlineMode) {
 		process.env.PI_OFFLINE = "1";
@@ -596,6 +596,16 @@ export async function main(args: string[], options?: MainOptions) {
 	configureHttpDispatcher();
 
 	if (await runLoginCommand(args, { settingsManager: bootstrapSettingsManager })) return;
+
+	// The llama.cpp built-in registers a provider, so it follows the allowedProviders gate like the built-in catalog.
+	const allowedProviders = bootstrapSettingsManager.getAllowedProviders();
+	const localLlmAllowed = allowedProviders.includes("*") || allowedProviders.includes(LLAMA_PROVIDER_ID);
+	const extensionFactories = [...builtInExtensions, ...(options?.extensionFactories ?? [])].filter(
+		(extension) =>
+			localLlmAllowed ||
+			typeof extension === "function" ||
+			!(extension.builtin && extension.name === LLAMA_BUILTIN_EXTENSION_NAME),
+	);
 
 	if (await handlePackageCommand(args, { extensionFactories })) {
 		const exitCode = process.exitCode ?? 0;

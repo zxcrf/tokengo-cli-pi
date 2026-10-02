@@ -6,8 +6,10 @@ import subagentExtension from "./subagent/index.ts";
 import tokenGoExtension from "./token-go/index.ts";
 import toolSearchExtension from "./tool-search/index.ts";
 
+export const LLAMA_BUILTIN_EXTENSION_NAME = "llama.cpp";
+
 export const builtInExtensions: InlineExtension[] = [
-	{ name: "llama.cpp", factory: llamaExtension, builtin: true },
+	{ name: LLAMA_BUILTIN_EXTENSION_NAME, factory: llamaExtension, builtin: true },
 	{ name: "token-go", factory: tokenGoExtension, builtin: true },
 	// Replaceable: an extension that registers `codemode`, `tool_search`, or `/mcp` (such as a third-party
 	// MCP extension) takes over instead of running alongside the built-in one.
