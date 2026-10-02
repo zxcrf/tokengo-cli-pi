@@ -1,10 +1,29 @@
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shouldRunFirstTimeSetup } from "../src/cli/startup-ui.ts";
+import type * as Config from "../src/config.ts";
 import { ENV_AGENT_DIR } from "../src/config.ts";
 import { SettingsManager } from "../src/core/settings-manager.ts";
+
+// First-time setup only runs for the official Pi distribution, so the distribution identity is mocked.
+const distribution = vi.hoisted(() => ({ appName: "pi", configDir: ".pi" }));
+vi.mock("../src/config.ts", async (importOriginal) => {
+	const actual = await importOriginal<typeof Config>();
+	return {
+		...actual,
+		get APP_NAME() {
+			return distribution.appName;
+		},
+		get CONFIG_DIR_NAME() {
+			return distribution.configDir;
+		},
+		get PACKAGE_NAME() {
+			return "@earendil-works/pi-coding-agent";
+		},
+	};
+});
 
 describe("shouldRunFirstTimeSetup", () => {
 	const originalPiExperimental = process.env.PI_EXPERIMENTAL;
@@ -17,6 +36,8 @@ describe("shouldRunFirstTimeSetup", () => {
 		settingsPath = join(tempDir, "settings.json");
 		process.env.PI_EXPERIMENTAL = "1";
 		delete process.env[ENV_AGENT_DIR];
+		distribution.appName = "pi";
+		distribution.configDir = ".pi";
 	});
 
 	afterEach(() => {
@@ -35,6 +56,13 @@ describe("shouldRunFirstTimeSetup", () => {
 
 	it("returns true when experimental, default agent dir, and no settings.json", () => {
 		expect(shouldRunFirstTimeSetup(settingsPath)).toBe(true);
+	});
+
+	it("returns false for a renamed distribution such as tokengo", () => {
+		distribution.appName = "tokengo";
+		distribution.configDir = ".tokengo";
+
+		expect(shouldRunFirstTimeSetup(settingsPath)).toBe(false);
 	});
 
 	it("returns false when experimental features are disabled", () => {

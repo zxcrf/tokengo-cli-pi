@@ -10,7 +10,6 @@ import {
 	parseModelCatalogRequest,
 	selectModelCatalog,
 } from "../../../scripts/model-catalog-protocol.ts";
-import { VERSION } from "../src/config.ts";
 import { ModelRuntime } from "../src/core/model-runtime.ts";
 import { allowNetwork } from "./test-network-env.ts";
 
@@ -107,7 +106,7 @@ describe("model catalog protocol with the current client", () => {
 		await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
 	});
 
-	it("negotiates the catalog for its version and reaches the OpenRouter API", async () => {
+	it("fetches the default catalog revision from an explicit base URL and reaches the OpenRouter API", async () => {
 		allowNetwork();
 		const runtime = await ModelRuntime.create({
 			credentials: new InMemoryCredentialStore(),
@@ -120,10 +119,12 @@ describe("model catalog protocol with the current client", () => {
 		expect([...refresh.errors]).toEqual([]);
 
 		const catalogUrl = "/api/models/providers/openrouter?types=chat%2Cimage%2Cclassifier";
-		expect(requests).toEqual([catalogUrl, `${catalogUrl}&pi-version=${VERSION}`]);
+		// The client identifies as tokengo-cli, not pi/<version>, so the server does not redirect it to a
+		// pi-version URL and serves the default revision.
+		expect(requests).toEqual([catalogUrl]);
 
 		const expectedModel =
-			selectModelCatalog(index, VERSION)?.revision === legacyRevision ? legacyModel : mixedApiModel;
+			selectModelCatalog(index, undefined)?.revision === legacyRevision ? legacyModel : mixedApiModel;
 		const model = runtime.getModel("openrouter", modelId);
 		expect(model).toMatchObject({ api: expectedModel.api, baseUrl: expectedModel.baseUrl });
 		if (!model) throw new Error(`Missing model: openrouter/${modelId}`);
