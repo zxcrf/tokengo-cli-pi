@@ -1,8 +1,6 @@
 /**
  * TokenGo (NewAPI relay) dashboard client. Plain fetch, no Node-only imports:
  * this module is reachable from the browser bundle through providers/all.ts.
- *
- * Slice 0 stub: signatures are frozen, bodies are filled in by slice S1.
  */
 
 export const TOKEN_GO_BASE_URL = "https://api.token-go.click";
@@ -121,17 +119,213 @@ export interface TokenGoClient {
 	tokenKey(id: number): Promise<string>;
 }
 
-export function createTokenGoClient(_options: TokenGoClientOptions): TokenGoClient {
-	throw new Error("not implemented");
+const MAX_TOKEN_PAGES = 50;
+const TOKEN_PAGE_SIZE = 100;
+const TOKEN_ENABLED = 1;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
+function optionalString(value: unknown): boolean {
+	return value === undefined || typeof value === "string";
+}
+
+function optionalNumber(value: unknown): boolean {
+	return value === undefined || typeof value === "number";
+}
+
+function isUser(value: unknown): value is TokenGoUser {
+	return (
+		isRecord(value) &&
+		typeof value.id === "number" &&
+		typeof value.username === "string" &&
+		optionalString(value.display_name) &&
+		optionalString(value.group) &&
+		optionalNumber(value.quota) &&
+		optionalNumber(value.used_quota)
+	);
+}
+
+function isGroup(value: unknown): value is TokenGoGroup {
+	return (
+		isRecord(value) &&
+		(typeof value.ratio === "number" || typeof value.ratio === "string") &&
+		optionalString(value.desc)
+	);
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+function isPricing(value: unknown): value is TokenGoPricing {
+	return (
+		isRecord(value) &&
+		typeof value.model_name === "string" &&
+		typeof value.quota_type === "number" &&
+		optionalNumber(value.model_ratio) &&
+		optionalNumber(value.model_price) &&
+		optionalNumber(value.completion_ratio) &&
+		optionalNumber(value.cache_ratio) &&
+		optionalNumber(value.create_cache_ratio) &&
+		(value.enable_groups === undefined || isStringArray(value.enable_groups)) &&
+		(value.supported_endpoint_types === undefined || isStringArray(value.supported_endpoint_types))
+	);
+}
+
+function isToken(value: unknown): value is TokenGoToken {
+	return (
+		isRecord(value) &&
+		typeof value.id === "number" &&
+		typeof value.name === "string" &&
+		typeof value.status === "number" &&
+		optionalString(value.key) &&
+		optionalString(value.group)
+	);
+}
+
+function unexpected(path: string, what: string): TokenGoError {
+	return new TokenGoError(`TokenGo ${path}: unexpected ${what}`, { path });
 }
 
 /** Trim, strip trailing "/", default TOKEN_GO_BASE_URL. */
-export function normalizeTokenGoBaseUrl(_url: string | undefined): string {
-	throw new Error("not implemented");
+export function normalizeTokenGoBaseUrl(url: string | undefined): string {
+	const trimmed = url?.trim().replace(/\/+$/, "");
+	return trimmed ? trimmed : TOKEN_GO_BASE_URL;
 }
 
-export function requireTokenGoGroup(_groups: Record<string, TokenGoGroup>): string {
-	throw new Error("not implemented");
+export function createTokenGoClient(options: TokenGoClientOptions): TokenGoClient {
+	const baseUrl = normalizeTokenGoBaseUrl(options.baseUrl);
+	const run = options.fetch ?? globalThis.fetch;
+	const timeoutMs = options.timeoutMs ?? TOKEN_GO_DEFAULT_TIMEOUT_MS;
+
+	// Never include the PAT in thrown messages or causes. Returns the raw JSON body after the envelope check.
+	async function send(method: string, path: string, body?: unknown): Promise<{ data: unknown; raw: unknown }> {
+		const timeout = AbortSignal.timeout(timeoutMs);
+		const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+		let res: Response;
+		let json: unknown;
+		try {
+			res = await run(`${baseUrl}${path}`, {
+				method,
+				headers: {
+					Authorization: `Bearer ${options.pat}`,
+					Accept: "application/json",
+					...(options.userId ? { "New-Api-User": options.userId } : {}),
+					...(body === undefined ? {} : { "Content-Type": "application/json" }),
+				},
+				body: body === undefined ? undefined : JSON.stringify(body),
+				signal,
+			});
+			json = await res.json().catch((bodyError: unknown) => {
+				// Abort or timeout while reading the body is not a malformed response.
+				if (signal.aborted) throw bodyError;
+				return undefined;
+			});
+		} catch (error) {
+			if (options.signal?.aborted) throw options.signal.reason;
+			const reason = timeout.aborted ? "request timed out" : "request failed";
+			// Re-wrap: the original error text is not guaranteed to be free of request details.
+			throw new TokenGoError(`TokenGo ${path}: ${reason}`, {
+				path,
+				cause: new Error(error instanceof Error ? error.name : "network error"),
+			});
+		}
+		if (!isRecord(json) || typeof json.success !== "boolean") {
+			throw new TokenGoError(`TokenGo ${path}: unexpected response (HTTP ${res.status})`, {
+				path,
+				status: res.status,
+				hint: res.status === 401 || res.status === 403 ? TOKEN_GO_AUTH_HINT : undefined,
+			});
+		}
+		if (!res.ok || !json.success) {
+			const message = typeof json.message === "string" ? json.message : "";
+			throw new TokenGoError(message || `TokenGo ${path}: request failed (HTTP ${res.status})`, {
+				path,
+				status: res.status,
+				hint: res.status === 401 || res.status === 403 ? TOKEN_GO_AUTH_HINT : undefined,
+			});
+		}
+		return { data: json.data, raw: json };
+	}
+
+	async function call(method: string, path: string, body?: unknown): Promise<unknown> {
+		return (await send(method, path, body)).data;
+	}
+
+	return {
+		baseUrl,
+		async self() {
+			const path = "/api/user/self";
+			const data = await call("GET", path);
+			if (!isUser(data)) throw unexpected(path, "user shape");
+			return data;
+		},
+		async groups() {
+			const path = "/api/user/self/groups";
+			const data = await call("GET", path);
+			if (!isRecord(data) || !Object.values(data).every(isGroup)) throw unexpected(path, "groups shape");
+			return data as Record<string, TokenGoGroup>;
+		},
+		async userModels(group) {
+			const path = `/api/user/models?group=${encodeURIComponent(group)}`;
+			const data = await call("GET", path);
+			if (!isStringArray(data)) throw unexpected(path, "models shape");
+			return data;
+		},
+		async pricingEnvelope() {
+			const path = "/api/pricing";
+			const { data, raw } = await send("GET", path);
+			if (!Array.isArray(data) || !data.every(isPricing)) throw unexpected(path, "pricing shape");
+			const ratios = isRecord(raw) && isRecord(raw.group_ratio) ? raw.group_ratio : {};
+			const groupRatio: Record<string, number> = {};
+			for (const [name, ratio] of Object.entries(ratios)) {
+				if (isFiniteNumber(ratio)) groupRatio[name] = ratio;
+			}
+			return { data, group_ratio: groupRatio };
+		},
+		async tokens() {
+			const all: TokenGoToken[] = [];
+			const seen = new Set<number>();
+			// Bounded: a server that ignores `p` and omits `total` would otherwise loop forever.
+			for (let page = 1; page <= MAX_TOKEN_PAGES; page++) {
+				const path = `/api/token/?p=${page}&size=${TOKEN_PAGE_SIZE}`;
+				const data = await call("GET", path);
+				if (!isRecord(data) || !Array.isArray(data.items) || !data.items.every(isToken)) {
+					throw unexpected(path, "token page shape");
+				}
+				const items: TokenGoToken[] = data.items;
+				const fresh = items.filter((token) => !seen.has(token.id));
+				for (const token of fresh) seen.add(token.id);
+				all.push(...fresh);
+				const total = typeof data.total === "number" ? data.total : Number.POSITIVE_INFINITY;
+				if (fresh.length === 0 || items.length < TOKEN_PAGE_SIZE || all.length >= total) break;
+			}
+			return all;
+		},
+		async createToken(body) {
+			await call("POST", "/api/token/", body);
+		},
+		async tokenKey(id) {
+			const path = `/api/token/${id}/key`;
+			const data = await call("POST", path);
+			if (!isRecord(data) || typeof data.key !== "string") throw unexpected(path, "token key shape");
+			return data.key;
+		},
+	};
+}
+
+export function requireTokenGoGroup(groups: Record<string, TokenGoGroup>): string {
+	if (TOKEN_GO_CLI_GROUP in groups) return TOKEN_GO_CLI_GROUP;
+	throw new TokenGoError(
+		`Your TokenGo account has no active subscription for the CLI ("${TOKEN_GO_CLI_GROUP}" group). Check your subscription at ${TOKEN_GO_SUBSCRIBE_URL}, then run \`tokengo login\` again.`,
+		{ path: "/api/user/self/groups" },
+	);
 }
 
 export interface TokenGoProvisioned {
@@ -140,14 +334,39 @@ export interface TokenGoProvisioned {
 	group: string;
 }
 
-export function provisionTokenGoKey(_input: {
+export async function provisionTokenGoKey(input: {
 	client: TokenGoClient;
 	group: string;
 	user?: TokenGoUser;
 }): Promise<TokenGoProvisioned> {
-	throw new Error("not implemented");
+	const { client, group } = input;
+	const user = input.user ?? (await client.self());
+	const find = async () =>
+		(await client.tokens()).find(
+			(token) => token.name === TOKEN_GO_TOKEN_NAME && token.group === group && token.status === TOKEN_ENABLED,
+		);
+	const existing = await find();
+	if (!existing) {
+		await client.createToken({
+			name: TOKEN_GO_TOKEN_NAME,
+			group,
+			unlimited_quota: true,
+			remain_quota: 0,
+			expired_time: -1,
+			model_limits_enabled: false,
+			model_limits: "",
+			allow_ips: "",
+		});
+	}
+	const token = existing ?? (await find());
+	if (!token) {
+		throw new TokenGoError(`TokenGo token ${TOKEN_GO_TOKEN_NAME} was created but not found`, {
+			path: "/api/token/",
+		});
+	}
+	return { key: await client.tokenKey(token.id), user, group };
 }
 
-export function quotaToUSD(_quota: number): number {
-	throw new Error("not implemented");
+export function quotaToUSD(quota: number): number {
+	return quota / TOKEN_GO_QUOTA_PER_USD;
 }

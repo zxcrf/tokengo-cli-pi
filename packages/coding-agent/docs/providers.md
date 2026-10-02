@@ -113,6 +113,26 @@ Radius is currently in early alpha and evolving quickly. See [radius.earendil.co
 
 Radius authentication uses its gateway catalog and caches refreshed model metadata for later offline startup. A custom Radius gateway configured in `models.json` uses its own catalog rather than inheriting the public `radius.pi.dev` catalog.
 
+### TokenGo
+
+TokenGo is a NewAPI relay. Its model catalog is discovered from your account, so there is no built-in model list.
+
+Run `/login token-go` and paste a system access token (系统访问令牌). Generate it in the TokenGo console under personal settings (个人设置). Login checks the `tokengo` group, which comes from a subscription, creates a `tokengo-cli` relay key if none exists, and stores both the relay key and the access token in [`auth.json`](configuration.md#agent-directory). If the account has no `tokengo` group, login fails and points to https://token-go.click/wallet.
+
+Models are listed through the access token (`/api/user/models` and `/api/pricing`) and cached for offline startup. Each model is routed by the endpoint types the relay reports: Claude models use the Anthropic Messages API, GPT and o-series models use the OpenAI Responses API when offered, and everything else uses OpenAI Chat Completions. If the relay hides pricing from the token, models stay available with zero reported cost.
+
+For CI or headless use, skip login:
+
+```bash
+export TOKENGO_API_KEY=sk-...   # relay key, used for requests
+export TOKENGO_PAT=...          # system access token, needed only for model discovery
+export TOKENGO_USER_ID=7        # optional, sent as New-Api-User during discovery
+export TOKENGO_GROUP=tokengo    # optional, default tokengo
+export TOKENGO_BASE_URL=https://api.token-go.click  # optional
+```
+
+A stored login takes precedence over these variables.
+
 ### Azure OpenAI
 
 Set an API key plus either a base URL or resource name:
