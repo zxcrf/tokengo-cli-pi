@@ -23,6 +23,7 @@ import { cloudflareAIGatewayProvider } from "../src/providers/cloudflare-ai-gate
 import { cloudflareWorkersAIProvider } from "../src/providers/cloudflare-workers-ai.ts";
 import { fauxAssistantMessage, fauxProvider } from "../src/providers/faux.ts";
 import { googleVertexProvider } from "../src/providers/google-vertex.ts";
+import { TOKEN_GO_PROVIDER_ID } from "../src/providers/token-go.ts";
 import type {
 	Api,
 	DeferredCancelOptions,
@@ -66,6 +67,8 @@ describe("builtin providers", () => {
 		expect(all.length).toBeGreaterThan(500);
 
 		for (const provider of providers) {
+			// TokenGo has no static catalog; its models arrive through dynamic discovery.
+			if (provider.id === TOKEN_GO_PROVIDER_ID) continue;
 			const list = models.getAllModels(provider.id);
 			expect(list.length).toBeGreaterThan(0);
 			expect(list.every((m) => m.provider === provider.id)).toBe(true);
