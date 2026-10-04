@@ -1,6 +1,6 @@
 ## TokenGo CLI
 
-> **Deprecated.** This oh-my-pi-based prototype is no longer maintained. TokenGo CLI development continues on the opencode-based fork: <https://github.com/zxcrf/opencode/tree/feat/tokengo>.
+> **Deprecated.** This oh-my-pi-based prototype is no longer maintained. TokenGo CLI development continues on the opencode-based fork: <https://github.com/zxcrf/tokengo-cli> (branch `feat/tokengo`).
 
 This worktree packages oh-my-pi as `tokengo` and adds the TokenGo provider.
 User data is stored under `~/.tokengo`; run `tokengo login token-go` before
