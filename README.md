@@ -1,6 +1,6 @@
 # TokenGo CLI
 
-> **Deprecated.** This Pi-based fork is no longer maintained. TokenGo CLI development continues on the opencode-based fork: <https://github.com/zxcrf/opencode/tree/feat/tokengo>.
+> **Deprecated.** This Pi-based fork is no longer maintained. TokenGo CLI development continues on the opencode-based fork: <https://github.com/zxcrf/tokengo-cli> (branch `feat/tokengo`).
 
 TokenGo CLI is a fork of [Pi](https://pi.dev) v1.0.0 (the upstream README follows). Releases: <https://github.com/zxcrf/tokengo-cli/releases>.
 
