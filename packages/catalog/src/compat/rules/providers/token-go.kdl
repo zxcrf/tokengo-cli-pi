@@ -1,0 +1,25 @@
+// TokenGo/NewAPI relay. Models are discovered from the account entitlement
+// endpoint and routed by the endpoint types advertised by TokenGo pricing.
+provider "token-go" {
+	default-model "claude-sonnet-5"
+	env "TOKENGO_API_KEY"
+	dynamic-models-authoritative #true
+	discovery label="TokenGo"
+
+	// TokenGo's DeepSeek Flash lane reports an OpenAI-compatible endpoint but
+	// keeps the reviewed DeepSeek wire contract: max_tokens, reasoning_content,
+	// mandatory reasoning replay, and no tool-choice field.
+	models "deepseek-flash" {
+		thinking-upgrade-neutral #true
+		max-tokens-field "max_tokens"
+		reasoning-content-field "reasoning_content"
+		requires-assistant-content-for-tool-calls #true
+		requires-reasoning-content-for-tool-calls #true
+		allows-synthetic-reasoning-content-for-tool-calls #false
+		supports-tool-choice #false
+		thinking-efforts "low" "high" "max"
+		clamp-output-to-model-max #true
+		strip-deepseek-special-tokens #true
+		stream-markup-healing-pattern "dsml"
+	}
+}

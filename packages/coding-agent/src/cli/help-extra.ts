@@ -17,6 +17,9 @@ export function getExtraHelpText(): string {
   OPENAI_API_KEY             - OpenAI GPT models
   GEMINI_API_KEY             - Google Gemini models
   COPILOT_GITHUB_TOKEN      - GitHub Copilot
+  TOKENGO_API_KEY            - Provisioned TokenGo inference key
+  TOKENGO_PAT                - TokenGo system access token for login
+  TOKENGO_BASE_URL           - TokenGo relay base URL override
 
   ${chalk.dim("# Additional LLM Providers")}
   AZURE_OPENAI_API_KEY       - Azure OpenAI models
@@ -63,7 +66,8 @@ export function getExtraHelpText(): string {
 
   ${chalk.dim("# Configuration")}
   OMP_PROFILE                 - Named profile for isolated agent state (same as --profile)
-  Use \`omp --profile <name> --alias <command>\` to create a shell shortcut for a profile
+  Use \`${APP_NAME} --profile <name> --alias <command>\` to create a shell shortcut for a profile
+  TOKENGO_CONFIG_DIR         - Config directory override (default: .tokengo)
   PI_CODING_AGENT_DIR        - Session storage directory (default: ~/${CONFIG_DIR_NAME}/agent)
   PI_PACKAGE_DIR             - Override package directory (for Nix/Guix store paths)
   PI_SMOL_MODEL              - Override smol/fast model (see --smol)
@@ -93,6 +97,6 @@ ${chalk.bold("Plugin Options:")}
   --plugin-dir <path>        Load plugin from directory (repeatable)
 
 ${chalk.bold("Useful Commands:")}
-  omp agents unpack           - Export bundled subagents to ~/.omp/agent/agents (default)
-  omp agents unpack --project - Export bundled subagents to ./.omp/agents`;
+  ${APP_NAME} agents unpack           - Export bundled subagents to ~/.tokengo/agent/agents (default)
+  ${APP_NAME} agents unpack --project - Export bundled subagents to ./.tokengo/agents`;
 }

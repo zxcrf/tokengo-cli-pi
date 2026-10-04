@@ -5,3 +5,4 @@ export * from "./google";
 export * from "./ollama";
 export * from "./openai-compat";
 export * from "./special";
+export * from "./token-go";

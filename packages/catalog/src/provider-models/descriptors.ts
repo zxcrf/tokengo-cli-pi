@@ -15,6 +15,7 @@ import type { ModelManagerOptions } from "../model-manager";
 import type { ModelManagerConfig, ProviderDescriptor } from "./descriptor-types";
 import { googleModelManagerOptions, googleVertexModelManagerOptions } from "./google";
 import { ollamaCloudModelManagerOptions } from "./ollama";
+import { tokenGoModelManagerOptions } from "./token-go";
 import {
 	abliterationModelManagerOptions,
 	aiandModelManagerOptions,
@@ -138,6 +139,7 @@ const MODEL_MANAGER_FACTORIES: Readonly<Partial<Record<KnownProvider, ModelManag
 	openai: config => openaiModelManagerOptions(config),
 	"opencode-go": config => opencodeGoModelManagerOptions(config),
 	"opencode-zen": config => opencodeZenModelManagerOptions(config),
+	"token-go": config => tokenGoModelManagerOptions(config),
 	openrouter: config => openrouterModelManagerOptions(config),
 	qianfan: config => qianfanModelManagerOptions(config),
 	"qwen-portal": config => qwenPortalModelManagerOptions(config),

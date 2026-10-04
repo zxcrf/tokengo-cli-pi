@@ -69,6 +69,7 @@ export type KnownProvider =
 	| "stepfun"
 	| "synthetic"
 	| "together"
+	| "token-go"
 	| "typesafe"
 	| "umans"
 	| "venice"

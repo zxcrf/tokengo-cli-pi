@@ -392,15 +392,20 @@ export async function runModelsCommand(command: ModelsCommandArgs): Promise<void
 	const settings = await Settings.init({ cwd, configFiles: command.flags.config });
 	const authStorage = await discoverAuthStorage(undefined, { settings });
 	try {
-		const modelRegistry = new ModelRegistry(authStorage);
+		const modelRegistry = new ModelRegistry(authStorage, undefined, { settings });
 
 		if (action === "refresh" && !json && process.stderr.isTTY) {
 			process.stderr.write("Refreshing models from all providers…\n");
 		}
-		await modelRegistry.refresh(
-			action === "refresh" ? "online" : "online-if-uncached",
-			action === "refresh" ? { refreshCommandCredentials: true } : undefined,
-		);
+		try {
+			await modelRegistry.refresh(
+				action === "refresh" ? "online" : "online-if-uncached",
+				action === "refresh" ? { refreshCommandCredentials: true } : undefined,
+			);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			process.stderr.write(`Warning: model refresh failed: ${message}\n`);
+		}
 
 		const cliExtensionPaths = command.flags.extensions ?? [];
 		await runModelsListing({

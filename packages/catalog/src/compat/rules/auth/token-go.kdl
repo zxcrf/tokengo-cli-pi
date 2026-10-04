@@ -1,0 +1,5 @@
+auth "token-go" {
+	name "TokenGo"
+	env "TOKENGO_API_KEY"
+	login "custom" hook="token-go"
+}

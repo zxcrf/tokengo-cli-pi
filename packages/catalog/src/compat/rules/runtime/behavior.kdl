@@ -303,6 +303,18 @@ behavior {
 		limits "gpt-5.4-mini" context=272000 max-tokens=128000
 		limits "grok-code-fast-1" context=192000 max-tokens=64000
 	}
+	// TokenGo pricing exposes a long-context billing threshold at 272K for its
+	// GPT lanes. Keep the user-visible context limit aligned with that relay
+	// contract while canonical model rows provide reasoning, modality, and output
+	// metadata.
+	model-limits provider="token-go" {
+		limits "gpt-5.5" context=272000 max-tokens=128000
+		limits "gpt-5.6-sol" context=272000 max-tokens=128000
+		limits "gpt-5.6-terra" context=272000 max-tokens=128000
+		limits "gpt-6-astra" context=272000 max-tokens=128000
+		limits "gpt-6-sol" context=272000 max-tokens=128000
+		limits "gpt-6.1-sol" context=272000 max-tokens=128000
+	}
 	// Alibaba Token Plan discovery carries no limit fields; values come from
 	// official model documentation. Unknown future models keep null limits
 	// rather than unsafe guesses.

@@ -48,6 +48,8 @@ export function getDefaultModelDiscoveryBaseUrl(providerId: string): string | un
 			return "https://opencode.ai/zen/go/v1";
 		case "opencode-zen":
 			return "https://opencode.ai/zen/v1";
+		case "token-go":
+			return Bun.env.TOKENGO_BASE_URL ?? "https://api.token-go.click";
 		case "vllm":
 			return "http://127.0.0.1:8000/v1";
 		default:

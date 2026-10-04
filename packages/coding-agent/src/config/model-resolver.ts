@@ -98,6 +98,11 @@ export function pickDefaultAvailableModel(
 					});
 					return concrete.length > 0 ? concrete : availableModels;
 				})();
+	const tokenGoDefaultId = DEFAULT_MODEL_PER_PROVIDER["token-go"];
+	const tokenGoDefault =
+		models.find(model => model.provider === "token-go" && model.id === tokenGoDefaultId) ??
+		models.find(model => model.provider === "token-go");
+	if (tokenGoDefault) return tokenGoDefault;
 	const firstDefault = models.find(
 		model => isKnownProvider(model.provider) && DEFAULT_MODEL_PER_PROVIDER[model.provider] === model.id,
 	);

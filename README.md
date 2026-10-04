@@ -1,3 +1,11 @@
+## TokenGo CLI
+
+> **Deprecated.** This oh-my-pi-based prototype is no longer maintained. TokenGo CLI development continues on the opencode-based fork: <https://github.com/zxcrf/opencode/tree/feat/tokengo>.
+
+This worktree packages oh-my-pi as `tokengo` and adds the TokenGo provider.
+User data is stored under `~/.tokengo`; run `tokengo login token-go` before
+model discovery. The upstream oh-my-pi documentation follows.
+
 <p align="center">
   <img src="https://github.com/can1357/oh-my-pi/blob/main/assets/hero.png?raw=true" alt="omp">
 </p>
@@ -624,6 +632,34 @@ For a non-interactive smoke check:
 ```sh
 bun dev -- --version
 ```
+
+To verify the TokenGo HTTP contract without network access, run the local Bun
+relay fixture and its integration checks:
+
+```sh
+bun test scripts/token-go-smoke.test.ts
+```
+
+For a manual CLI session, start the relay in one terminal:
+
+```sh
+bun scripts/token-go-fake-relay.ts
+```
+
+Copy the printed `TOKENGO_BASE_URL`, `TOKENGO_PAT`, and `TOKENGO_API_KEY`
+assignments into the environment of the CLI process.
+
+```sh
+bun packages/coding-agent/src/cli.ts login token-go --token "$TOKENGO_PAT"
+bun packages/coding-agent/src/cli.ts models --json
+bun packages/coding-agent/src/cli.ts -p --model token-go/claude-sonnet-4-5 "ping"
+```
+
+The fixture covers PAT dashboard authentication, model discovery, Anthropic
+Messages, OpenAI Chat Completions, OpenAI Responses streaming, pricing `403`,
+and model discovery from an offline JSON snapshot. It is self-contained under
+[`scripts/fixtures/token-go-relay.ts`](scripts/fixtures/token-go-relay.ts), so
+provider tests can reuse it before a real TokenGo account is configured.
 
 ### Debug Command
 

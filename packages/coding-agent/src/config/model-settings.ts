@@ -3,6 +3,7 @@
  * settings-panel order; `config/all-settings.ts` registers every domain.
  */
 import { register, type SettingValueOf } from "./registry";
+import type { Settings } from "./settings";
 import type { AuthAccountPolicies } from "@oh-my-pi/pi-ai/auth-storage";
 import type { cfgDefaultThinkingLevel } from "../session/settings";
 
@@ -28,6 +29,7 @@ export interface ModelPreset {
 }
 
 const EMPTY_STRING_ARRAY: string[] = [];
+export const DEFAULT_ALLOWED_PROVIDERS: readonly string[] = ["token-go"];
 const EMPTY_STRING_RECORD: Record<string, string> = {};
 const DEFAULT_CYCLE_ORDER: string[] = ["smol", "default", "slow"];
 const EMPTY_MODEL_TAGS_RECORD: ModelTagsSettings = {};
@@ -80,6 +82,36 @@ export const cfgDisabledProviders = register({
 	default: EMPTY_STRING_ARRAY,
 	pathScoped: { valuesKey: "providers" },
 });
+
+/** Built-in model providers exposed by the CLI. `*` restores the upstream catalog. */
+export const cfgAllowedProviders = register({
+	id: "allowedProviders",
+	type: "array",
+	default: DEFAULT_ALLOWED_PROVIDERS,
+});
+
+export function allowedProviderIds(settings?: Settings): readonly string[] {
+	// Public SDK/model-registry callers do not opt into the TokenGo CLI policy.
+	// Only a Settings-backed CLI session gets the narrowed default.
+	if (!settings) return ["*"];
+	const value = cfgAllowedProviders.get(settings) as unknown;
+	if (!Array.isArray(value)) return DEFAULT_ALLOWED_PROVIDERS;
+	return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+export function providerMatchesAllowedList(provider: string, allowed: readonly string[]): boolean {
+	if (allowed.length === 0 || allowed.includes("*")) return allowed.includes("*");
+	const normalized = provider.toLowerCase();
+	return allowed.some(entry => {
+		const candidate = entry.trim().toLowerCase();
+		if (candidate === "*") return true;
+		if (candidate.endsWith("/*")) {
+			const prefix = candidate.slice(0, -2);
+			return normalized === prefix || normalized.startsWith(`${prefix}/`);
+		}
+		return normalized === candidate;
+	});
+}
 
 export const cfgModelRoleStorage = register({
 	id: "modelRoleStorage",

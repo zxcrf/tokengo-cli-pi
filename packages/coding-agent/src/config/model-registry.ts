@@ -128,7 +128,7 @@ import { ModelsConfigFile, type ProviderValidationModel, validateProviderConfigu
 import type { ModelOverride, ModelsConfig, ProviderAuthMode } from "./models-config-schema";
 import { type Settings, settings } from "./settings";
 
-import { cfgDisabledProviders } from "./model-settings";
+import { allowedProviderIds, cfgDisabledProviders, providerMatchesAllowedList } from "./model-settings";
 import { cfgExtendedContext } from "../session/context-settings";
 
 // DeviceCheck attestation (`x-oai-attestation`) for ChatGPT-OAuth Codex
@@ -144,6 +144,13 @@ const BUILT_IN_MODEL_MANAGER_PROVIDER_IDS: Readonly<Record<string, true>> = Obje
 		),
 	),
 );
+
+/** Providers shipped by the catalog. Runtime extension providers remain visible even when the
+ * CLI's built-in allow-list is narrowed. */
+const BUILT_IN_PROVIDER_IDS: ReadonlySet<string> = new Set([
+	...getBundledProviders(),
+	...Object.keys(BUILT_IN_MODEL_MANAGER_PROVIDER_IDS),
+]);
 const MODELS_DEV_CATALOG_PROVIDER_ID_LOOKUP: Readonly<Record<string, true>> = Object.freeze(
 	Object.fromEntries(MODELS_DEV_CATALOG_PROVIDER_IDS.map(providerId => [providerId, true as const])),
 );
@@ -269,6 +276,7 @@ export class ModelRegistry {
 	#providerLookupSnapshots: Map<string, Model<Api>[]> = new Map();
 	#fullKindSnapshotSource: Model<Api>[] | undefined;
 	#fullKindSnapshots: Partial<Record<ModelKind, Model<Api>[]>> = {};
+	#fullKindSnapshotPolicy: string | undefined;
 	#customProviderApiKeys: Map<string, string> = new Map();
 	// Every command-backed (`!cmd`) config value a provider carries — apiKey plus
 	// provider/model-override header values — keyed by provider. The 401 auth
@@ -1199,6 +1207,9 @@ export class ModelRegistry {
 	}
 
 	#descriptorBaseUrl(providerId: string): string | undefined {
+		if (providerId === "token-go" && Bun.env.TOKENGO_BASE_URL?.trim()) {
+			return Bun.env.TOKENGO_BASE_URL.trim();
+		}
 		return (
 			this.#runtimeProviderOverrides.get(providerId)?.baseUrl ??
 			this.#providerOverrides.get(providerId)?.baseUrl ??
@@ -2641,6 +2652,15 @@ export class ModelRegistry {
 		return models;
 	}
 
+	#isAllowedProvider(provider: string): boolean {
+		if (!BUILT_IN_PROVIDER_IDS.has(provider)) return true;
+		return providerMatchesAllowedList(provider, allowedProviderIds(this.#settings));
+	}
+
+	#isAllowedModel(model: Model<Api>): boolean {
+		return this.#isAllowedProvider(model.provider);
+	}
+
 	/**
 	 * Get all models (built-in + custom) of one catalog kind.
 	 * If custom config had errors, returns only built-in models. The default
@@ -2648,10 +2668,14 @@ export class ModelRegistry {
 	 * Pass `"all"` to retrieve the complete catalog.
 	 */
 	getAll(kind: ModelKind | "all" = "chat"): Model<Api>[] {
-		const models = this.#ensureFullSnapshot();
+		const allModels = this.#ensureFullSnapshot();
+		const allowed = allowedProviderIds(this.#settings);
+		const policy = allowed.join("\u0000");
+		const models = allModels.filter(model => this.#isAllowedModel(model));
 		if (kind === "all") return models;
-		if (this.#fullKindSnapshotSource !== models) {
-			this.#fullKindSnapshotSource = models;
+		if (this.#fullKindSnapshotSource !== allModels || this.#fullKindSnapshotPolicy !== policy) {
+			this.#fullKindSnapshotSource = allModels;
+			this.#fullKindSnapshotPolicy = policy;
 			this.#fullKindSnapshots = {};
 		}
 		const cached = this.#fullKindSnapshots[kind];
@@ -2703,17 +2727,22 @@ export class ModelRegistry {
 			return this.#models.filter(
 				model =>
 					requested.has(model.provider.toLowerCase()) &&
+					this.#isAllowedModel(model) &&
 					isProviderAvailable(model.provider) &&
 					(kind === "all" || modelKind(model) === kind),
 			);
 		}
 		const availableProviders = new Set(
 			this.#knownStaticProviders().filter(
-				provider => requested.has(provider.toLowerCase()) && isProviderAvailable(provider),
+				provider =>
+					requested.has(provider.toLowerCase()) &&
+					this.#isAllowedProvider(provider) &&
+					isProviderAvailable(provider),
 			),
 		);
 		const models = this.#composeStaticModels(availableProviders);
-		return kind === "all" ? models : models.filter(model => modelKind(model) === kind);
+		const allowedModels = models.filter(model => this.#isAllowedModel(model));
+		return kind === "all" ? allowedModels : allowedModels.filter(model => modelKind(model) === kind);
 	}
 
 	/**
@@ -2847,7 +2876,11 @@ export class ModelRegistry {
 	 */
 	find(provider: string, modelId: string): Model<Api> | undefined {
 		if (this.#isProviderDisabled(provider)) return undefined;
-		return resolveProviderModelReference(provider, modelId, this.#modelsForProviderLookup(provider));
+		return resolveProviderModelReference(
+			provider,
+			modelId,
+			this.#modelsForProviderLookup(provider).filter(model => this.#isAllowedModel(model)),
+		);
 	}
 
 	/** Whether settings disable `provider` (`disabledProviders`). */
@@ -2864,7 +2897,7 @@ export class ModelRegistry {
 	getProviderModels(provider: string): Model<Api>[] {
 		const normalizedProvider = provider.trim().toLowerCase();
 		return this.#modelsForProviderLookup(provider).filter(
-			model => model.provider.toLowerCase() === normalizedProvider,
+			model => model.provider.toLowerCase() === normalizedProvider && this.#isAllowedModel(model),
 		);
 	}
 

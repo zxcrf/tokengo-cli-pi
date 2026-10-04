@@ -2486,6 +2486,7 @@ export async function runRootCommand(
 				}
 				process.stderr.write(`${chalk.yellow("\nSet an API key environment variable:")}\n`);
 				process.stderr.write("  ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, etc.\n");
+				process.stderr.write(`  TokenGo: run \`${APP_NAME} login token-go\` or set TOKENGO_API_KEY.\n`);
 				process.stderr.write(`${chalk.yellow(`\nOr create ${ModelsConfigFile.path()}`)}\n`);
 				process.exit(1);
 			}
